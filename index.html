@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>游戏评论数据集质量仪表盘</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; margin: 0;
+       background: linear-gradient(150deg, #eef4ff 0%, #fdf0f6 55%, #eefaf3 100%);
+       color: #1f2937; min-height: 100vh; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 30px 24px 40px; }
+.header { background: linear-gradient(120deg, #1e3a8a 0%, #4f46e5 45%, #7c3aed 100%);
+           border-radius: 18px; padding: 26px 30px; color: #fff; margin-bottom: 22px;
+           box-shadow: 0 10px 30px rgba(79,70,229,.25); }
+.header h1 { margin: 0 0 6px; font-size: 24px; letter-spacing: .5px; }
+.header .sub { opacity: .85; font-size: 13px; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.badge { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.25);
+          border-radius: 999px; padding: 4px 14px; font-size: 12px; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 14px; margin-bottom: 20px; }
+.kpi { background: #fff; border-radius: 14px; padding: 18px 12px; text-align: center;
+       box-shadow: 0 2px 12px rgba(31,41,55,.06); border-top: 4px solid var(--accent); }
+.kpi .num { font-size: 30px; font-weight: 800; color: var(--accent); }
+.kpi .cap { font-size: 13px; color: #6b7280; margin-top: 4px; }
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+          gap: 18px; }
+.panel { background: #fff; border-radius: 16px; padding: 20px 22px;
+         box-shadow: 0 2px 12px rgba(31,41,55,.06); }
+.panel h2 { font-size: 16px; margin: 0 0 16px; display: flex; align-items: center;
+             gap: 8px; color: #111827; }
+.panel h2::before { content: ""; width: 6px; height: 18px; border-radius: 3px;
+                     background: linear-gradient(180deg,#4f46e5,#7c3aed); }
+.donut-wrap { display: flex; align-items: center; gap: 30px; flex-wrap: wrap; }
+.donut { width: 185px; height: 185px; border-radius: 50%;
+          background: conic-gradient(#ef4444 0.00deg 77.47deg, #f97316 77.47deg 91.00deg, #eab308 91.00deg 107.57deg, #84cc16 107.57deg 130.85deg, #22c55e 130.85deg 360.00deg); position: relative; flex-shrink: 0;
+          box-shadow: inset 0 0 0 1px rgba(0,0,0,.03); }
+.donut::after { content: ""; position: absolute; inset: 42px; background: #fff;
+                 border-radius: 50%; }
+.donut-center { position: absolute; inset: 0; display: flex; flex-direction: column;
+                 align-items: center; justify-content: center; z-index: 1; }
+.donut-center .big { font-size: 26px; font-weight: 800; color: #111827; }
+.donut-center .small { font-size: 12px; color: #6b7280; }
+.legend { flex: 1; min-width: 190px; }
+.legend-row { display: flex; align-items: center; gap: 10px; padding: 7px 0;
+               border-bottom: 1px dashed #eef1f6; font-size: 13px; }
+.legend-row .dot { width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; }
+.legend-row .key { width: 58px; }
+.legend-row .val { flex: 1; text-align: right; font-weight: 600; }
+.legend-row .pct { width: 56px; text-align: right; color: #6b7280; }
+.tt { position: relative; cursor: help; }
+.tip { position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%);
+        background: rgba(31,41,55,.96); color: #fff; border-radius: 10px; padding: 10px 12px;
+        font-size: 12px; min-width: 210px; opacity: 0; visibility: hidden; z-index: 50;
+        box-shadow: 0 10px 28px rgba(0,0,0,.28); pointer-events: none;
+        transition: opacity .15s ease, visibility .15s ease; }
+.tt:hover .tip { opacity: 1; visibility: visible; }
+.tip .t-title { font-weight: 700; margin-bottom: 6px; }
+.tip table { width: 100%; border-collapse: collapse; }
+.tip th, .tip td { padding: 2px 8px; text-align: right; }
+.tip th { color: #9ca3af; font-weight: 400; font-size: 11px;
+           border-bottom: 1px solid rgba(255,255,255,.15); }
+.tip td:first-child { text-align: left; white-space: nowrap; }
+.sdot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.emoji-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.emoji-card { border-radius: 14px; padding: 16px 10px; text-align: center; color: #fff;
+               box-shadow: 0 4px 14px rgba(31,41,55,.12); }
+.emoji-card .emoji { font-size: 40px; line-height: 1.2; }
+.emoji-card .label { font-size: 12px; opacity: .92; margin-top: 6px; }
+.emoji-card .cnt { font-size: 24px; font-weight: 800; margin-top: 4px; }
+.emoji-card .pct { font-size: 12px; opacity: .9; }
+.mini-track { margin-top: 10px; height: 6px; border-radius: 3px;
+               background: rgba(255,255,255,.35); overflow: hidden; }
+.mini-fill { height: 100%; border-radius: 3px; background: rgba(255,255,255,.95); }
+.bar-row { display: flex; align-items: center; gap: 10px; margin: 10px 0; font-size: 13px; }
+.gkey { width: 96px; text-align: right; overflow: hidden; text-overflow: ellipsis;
+        white-space: nowrap; }
+.bar-track { flex: 1; background: #eef1f6; height: 18px; border-radius: 9px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 9px; }
+.bar-row .val { width: 52px; text-align: right; font-weight: 700; }
+.note { margin-top: 22px; color: #9ca3af; font-size: 12px; text-align: center; }
+.note .dot-s { margin: 0 6px; }
+@media (max-width: 720px) {
+  .emoji-grid { grid-template-columns: 1fr; }
+  .donut-wrap { justify-content: center; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>🎮 游戏评论数据集质量仪表盘</h1>
+    <div class="sub">Game Review Sentiment Dataset · v0.1.0
+      <span class="dot-s">·</span> 采集 → 清洗 → 标注 → 校验 → 质量评估</div>
+    <div class="badges"><span class="badge badge-taptap">taptap 3886 条</span><span class="badge badge-steam">steam 2871 条</span></div>
+  </div>
+
+  <div class="kpis"><div class="kpi tt" style="--accent:#3b82f6"><div class="num">6757</div><div class="cap">原始评论数</div><div class="tip"><div class="t-title">原始评论的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>黑神话：悟空</td><td>1439 条</td><td>21.3%</td></tr><tr><td>博德之门3</td><td>794 条</td><td>11.8%</td></tr><tr><td>王者荣耀</td><td>792 条</td><td>11.7%</td></tr><tr><td>崩坏：星穹铁道</td><td>786 条</td><td>11.6%</td></tr><tr><td>原神</td><td>778 条</td><td>11.5%</td></tr><tr><td>和平精英</td><td>747 条</td><td>11.1%</td></tr><tr><td>艾尔登法环</td><td>730 条</td><td>10.8%</td></tr><tr><td>幻兽帕鲁</td><td>691 条</td><td>10.2%</td></tr></tbody></table></div></div><div class="kpi tt" style="--accent:#8b5cf6"><div class="num">6757</div><div class="cap">情感标注数</div><div class="tip"><div class="t-title">情感标注的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>黑神话：悟空</td><td>1439 条</td><td>21.3%</td></tr><tr><td>博德之门3</td><td>794 条</td><td>11.8%</td></tr><tr><td>王者荣耀</td><td>792 条</td><td>11.7%</td></tr><tr><td>崩坏：星穹铁道</td><td>786 条</td><td>11.6%</td></tr><tr><td>原神</td><td>778 条</td><td>11.5%</td></tr><tr><td>和平精英</td><td>747 条</td><td>11.1%</td></tr><tr><td>艾尔登法环</td><td>730 条</td><td>10.8%</td></tr><tr><td>幻兽帕鲁</td><td>691 条</td><td>10.2%</td></tr></tbody></table></div></div><div class="kpi tt" style="--accent:#14b8a6"><div class="num">8</div><div class="cap">游戏覆盖</div></div><div class="kpi tt" style="--accent:#f59e0b"><div class="num">366</div><div class="cap">矛盾样本</div><div class="tip"><div class="t-title">矛盾样本的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>王者荣耀</td><td>77 条</td><td>21.0%</td></tr><tr><td>原神</td><td>68 条</td><td>18.6%</td></tr><tr><td>崩坏：星穹铁道</td><td>58 条</td><td>15.8%</td></tr><tr><td>黑神话：悟空</td><td>54 条</td><td>14.8%</td></tr><tr><td>和平精英</td><td>46 条</td><td>12.6%</td></tr><tr><td>艾尔登法环</td><td>24 条</td><td>6.6%</td></tr><tr><td>幻兽帕鲁</td><td>20 条</td><td>5.5%</td></tr><tr><td>博德之门3</td><td>19 条</td><td>5.2%</td></tr></tbody></table></div></div><div class="kpi tt" style="--accent:#f97316"><div class="num">693</div><div class="cap">低置信度</div><div class="tip"><div class="t-title">低置信度样本的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>崩坏：星穹铁道</td><td>151 条</td><td>21.8%</td></tr><tr><td>原神</td><td>146 条</td><td>21.1%</td></tr><tr><td>和平精英</td><td>128 条</td><td>18.5%</td></tr><tr><td>王者荣耀</td><td>121 条</td><td>17.5%</td></tr><tr><td>黑神话：悟空</td><td>84 条</td><td>12.1%</td></tr><tr><td>艾尔登法环</td><td>24 条</td><td>3.5%</td></tr><tr><td>幻兽帕鲁</td><td>20 条</td><td>2.9%</td></tr><tr><td>博德之门3</td><td>19 条</td><td>2.7%</td></tr></tbody></table></div></div></div>
+
+  <div class="panels">
+    <div class="panel">
+      <h2>评分分布（环形饼图）</h2>
+      <div class="donut-wrap">
+        <div class="donut" style="background:conic-gradient(#ef4444 0.00deg 77.47deg, #f97316 77.47deg 91.00deg, #eab308 91.00deg 107.57deg, #84cc16 107.57deg 130.85deg, #22c55e 130.85deg 360.00deg)">
+          <div class="donut-center tt">
+            <div class="big">6757</div>
+            <div class="small">总评论</div>
+            <div class="tip"><div class="t-title">总评论的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>黑神话：悟空</td><td>1439 条</td><td>21.3%</td></tr><tr><td>博德之门3</td><td>794 条</td><td>11.8%</td></tr><tr><td>王者荣耀</td><td>792 条</td><td>11.7%</td></tr><tr><td>崩坏：星穹铁道</td><td>786 条</td><td>11.6%</td></tr><tr><td>原神</td><td>778 条</td><td>11.5%</td></tr><tr><td>和平精英</td><td>747 条</td><td>11.1%</td></tr><tr><td>艾尔登法环</td><td>730 条</td><td>10.8%</td></tr><tr><td>幻兽帕鲁</td><td>691 条</td><td>10.2%</td></tr></tbody></table></div>
+          </div>
+        </div>
+        <div class="legend"><div class="legend-row tt"><span class="dot" style="background:#ef4444"></span><span class="key">1.0 星</span><span class="val">1454 条</span><span class="pct">21.5%</span><div class="tip"><div class="t-title">1.0 星评论的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>王者荣耀</td><td>556 条</td><td>38.2%</td></tr><tr><td>和平精英</td><td>266 条</td><td>18.3%</td></tr><tr><td>原神</td><td>176 条</td><td>12.1%</td></tr><tr><td>崩坏：星穹铁道</td><td>147 条</td><td>10.1%</td></tr><tr><td>黑神话：悟空</td><td>122 条</td><td>8.4%</td></tr><tr><td>幻兽帕鲁</td><td>72 条</td><td>5.0%</td></tr><tr><td>艾尔登法环</td><td>66 条</td><td>4.5%</td></tr><tr><td>博德之门3</td><td>49 条</td><td>3.4%</td></tr></tbody></table></div></div><div class="legend-row tt"><span class="dot" style="background:#f97316"></span><span class="key">2.0 星</span><span class="val">254 条</span><span class="pct">3.8%</span><div class="tip"><div class="t-title">2.0 星评论的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>崩坏：星穹铁道</td><td>71 条</td><td>28.0%</td></tr><tr><td>原神</td><td>63 条</td><td>24.8%</td></tr><tr><td>王者荣耀</td><td>55 条</td><td>21.7%</td></tr><tr><td>和平精英</td><td>47 条</td><td>18.5%</td></tr><tr><td>黑神话：悟空</td><td>18 条</td><td>7.1%</td></tr></tbody></table></div></div><div class="legend-row tt"><span class="dot" style="background:#eab308"></span><span class="key">3.0 星</span><span class="val">311 条</span><span class="pct">4.6%</span><div class="tip"><div class="t-title">3.0 星评论的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>崩坏：星穹铁道</td><td>87 条</td><td>28.0%</td></tr><tr><td>原神</td><td>76 条</td><td>24.4%</td></tr><tr><td>和平精英</td><td>75 条</td><td>24.1%</td></tr><tr><td>王者荣耀</td><td>54 条</td><td>17.4%</td></tr><tr><td>黑神话：悟空</td><td>19 条</td><td>6.1%</td></tr></tbody></table></div></div><div class="legend-row tt"><span class="dot" style="background:#84cc16"></span><span class="key">4.0 星</span><span class="val">437 条</span><span class="pct">6.5%</span><div class="tip"><div class="t-title">4.0 星评论的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>原神</td><td>116 条</td><td>26.5%</td></tr><tr><td>崩坏：星穹铁道</td><td>106 条</td><td>24.3%</td></tr><tr><td>和平精英</td><td>96 条</td><td>22.0%</td></tr><tr><td>黑神话：悟空</td><td>74 条</td><td>16.9%</td></tr><tr><td>王者荣耀</td><td>45 条</td><td>10.3%</td></tr></tbody></table></div></div><div class="legend-row tt"><span class="dot" style="background:#22c55e"></span><span class="key">5.0 星</span><span class="val">4301 条</span><span class="pct">63.7%</span><div class="tip"><div class="t-title">5.0 星评论的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>黑神话：悟空</td><td>1206 条</td><td>28.0%</td></tr><tr><td>博德之门3</td><td>745 条</td><td>17.3%</td></tr><tr><td>艾尔登法环</td><td>664 条</td><td>15.4%</td></tr><tr><td>幻兽帕鲁</td><td>619 条</td><td>14.4%</td></tr><tr><td>崩坏：星穹铁道</td><td>375 条</td><td>8.7%</td></tr><tr><td>原神</td><td>347 条</td><td>8.1%</td></tr><tr><td>和平精英</td><td>263 条</td><td>6.1%</td></tr><tr><td>王者荣耀</td><td>82 条</td><td>1.9%</td></tr></tbody></table></div></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>情感标签分布</h2>
+      <div class="emoji-grid"><div class="emoji-card tt" style="background:linear-gradient(135deg,#22c55e,#16a34a)"><div class="emoji">😄</div><div class="label">正面 · positive</div><div class="cnt">4684</div><div class="pct">69.3%</div><div class="mini-track"><div class="mini-fill" style="width:69.3%"></div></div><div class="tip"><div class="t-title">正面评论的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>黑神话：悟空</td><td>1241 条</td><td>26.5%</td></tr><tr><td>博德之门3</td><td>737 条</td><td>15.7%</td></tr><tr><td>艾尔登法环</td><td>654 条</td><td>14.0%</td></tr><tr><td>幻兽帕鲁</td><td>612 条</td><td>13.1%</td></tr><tr><td>崩坏：星穹铁道</td><td>460 条</td><td>9.8%</td></tr><tr><td>原神</td><td>441 条</td><td>9.4%</td></tr><tr><td>和平精英</td><td>364 条</td><td>7.8%</td></tr><tr><td>王者荣耀</td><td>175 条</td><td>3.7%</td></tr></tbody></table></div></div><div class="emoji-card tt" style="background:linear-gradient(135deg,#94a3b8,#6b7280)"><div class="emoji">😐</div><div class="label">中性 · neutral</div><div class="cnt">345</div><div class="pct">5.1%</div><div class="mini-track"><div class="mini-fill" style="width:5.1%"></div></div><div class="tip"><div class="t-title">中性评论的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>崩坏：星穹铁道</td><td>99 条</td><td>28.7%</td></tr><tr><td>和平精英</td><td>82 条</td><td>23.8%</td></tr><tr><td>原神</td><td>77 条</td><td>22.3%</td></tr><tr><td>王者荣耀</td><td>49 条</td><td>14.2%</td></tr><tr><td>黑神话：悟空</td><td>33 条</td><td>9.6%</td></tr><tr><td>幻兽帕鲁</td><td>3 条</td><td>0.9%</td></tr><tr><td>博德之门3</td><td>2 条</td><td>0.6%</td></tr></tbody></table></div></div><div class="emoji-card tt" style="background:linear-gradient(135deg,#ef4444,#dc2626)"><div class="emoji">😠</div><div class="label">负面 · negative</div><div class="cnt">1728</div><div class="pct">25.6%</div><div class="mini-track"><div class="mini-fill" style="width:25.6%"></div></div><div class="tip"><div class="t-title">负面评论的游戏分布</div><table><thead><tr><th>游戏</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td>王者荣耀</td><td>568 条</td><td>32.9%</td></tr><tr><td>和平精英</td><td>301 条</td><td>17.4%</td></tr><tr><td>原神</td><td>260 条</td><td>15.0%</td></tr><tr><td>崩坏：星穹铁道</td><td>227 条</td><td>13.1%</td></tr><tr><td>黑神话：悟空</td><td>165 条</td><td>9.5%</td></tr><tr><td>幻兽帕鲁</td><td>76 条</td><td>4.4%</td></tr><tr><td>艾尔登法环</td><td>76 条</td><td>4.4%</td></tr><tr><td>博德之门3</td><td>55 条</td><td>3.2%</td></tr></tbody></table></div></div></div>
+    </div>
+
+    <div class="panel">
+      <h2>游戏覆盖量</h2>
+      <div><div class="bar-row tt"><span class="gkey">黑神话：悟空</span><div class="bar-track"><div class="bar-fill" style="width:100.0%;background:linear-gradient(90deg,#5B8FF9,#61C0BF)"></div></div><span class="val">1439</span><div class="tip"><div class="t-title">黑神话：悟空 · 情绪分布</div><table><thead><tr><th>情绪</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td><span class="sdot" style="background:#22c55e"></span>😄 正面</td><td>1241 条</td><td>86.2%</td></tr><tr><td><span class="sdot" style="background:#94a3b8"></span>😐 中性</td><td>33 条</td><td>2.3%</td></tr><tr><td><span class="sdot" style="background:#ef4444"></span>😠 负面</td><td>165 条</td><td>11.5%</td></tr></tbody></table></div></div><div class="bar-row tt"><span class="gkey">博德之门3</span><div class="bar-track"><div class="bar-fill" style="width:55.2%;background:linear-gradient(90deg,#61C0BF,#9270CA)"></div></div><span class="val">794</span><div class="tip"><div class="t-title">博德之门3 · 情绪分布</div><table><thead><tr><th>情绪</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td><span class="sdot" style="background:#22c55e"></span>😄 正面</td><td>737 条</td><td>92.8%</td></tr><tr><td><span class="sdot" style="background:#94a3b8"></span>😐 中性</td><td>2 条</td><td>0.3%</td></tr><tr><td><span class="sdot" style="background:#ef4444"></span>😠 负面</td><td>55 条</td><td>6.9%</td></tr></tbody></table></div></div><div class="bar-row tt"><span class="gkey">王者荣耀</span><div class="bar-track"><div class="bar-fill" style="width:55.0%;background:linear-gradient(90deg,#9270CA,#F6903D)"></div></div><span class="val">792</span><div class="tip"><div class="t-title">王者荣耀 · 情绪分布</div><table><thead><tr><th>情绪</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td><span class="sdot" style="background:#22c55e"></span>😄 正面</td><td>175 条</td><td>22.1%</td></tr><tr><td><span class="sdot" style="background:#94a3b8"></span>😐 中性</td><td>49 条</td><td>6.2%</td></tr><tr><td><span class="sdot" style="background:#ef4444"></span>😠 负面</td><td>568 条</td><td>71.7%</td></tr></tbody></table></div></div><div class="bar-row tt"><span class="gkey">崩坏：星穹铁道</span><div class="bar-track"><div class="bar-fill" style="width:54.6%;background:linear-gradient(90deg,#F6903D,#F6BD16)"></div></div><span class="val">786</span><div class="tip"><div class="t-title">崩坏：星穹铁道 · 情绪分布</div><table><thead><tr><th>情绪</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td><span class="sdot" style="background:#22c55e"></span>😄 正面</td><td>460 条</td><td>58.5%</td></tr><tr><td><span class="sdot" style="background:#94a3b8"></span>😐 中性</td><td>99 条</td><td>12.6%</td></tr><tr><td><span class="sdot" style="background:#ef4444"></span>😠 负面</td><td>227 条</td><td>28.9%</td></tr></tbody></table></div></div><div class="bar-row tt"><span class="gkey">原神</span><div class="bar-track"><div class="bar-fill" style="width:54.1%;background:linear-gradient(90deg,#F6BD16,#E8684A)"></div></div><span class="val">778</span><div class="tip"><div class="t-title">原神 · 情绪分布</div><table><thead><tr><th>情绪</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td><span class="sdot" style="background:#22c55e"></span>😄 正面</td><td>441 条</td><td>56.7%</td></tr><tr><td><span class="sdot" style="background:#94a3b8"></span>😐 中性</td><td>77 条</td><td>9.9%</td></tr><tr><td><span class="sdot" style="background:#ef4444"></span>😠 负面</td><td>260 条</td><td>33.4%</td></tr></tbody></table></div></div><div class="bar-row tt"><span class="gkey">和平精英</span><div class="bar-track"><div class="bar-fill" style="width:51.9%;background:linear-gradient(90deg,#E8684A,#6DC8EC)"></div></div><span class="val">747</span><div class="tip"><div class="t-title">和平精英 · 情绪分布</div><table><thead><tr><th>情绪</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td><span class="sdot" style="background:#22c55e"></span>😄 正面</td><td>364 条</td><td>48.7%</td></tr><tr><td><span class="sdot" style="background:#94a3b8"></span>😐 中性</td><td>82 条</td><td>11.0%</td></tr><tr><td><span class="sdot" style="background:#ef4444"></span>😠 负面</td><td>301 条</td><td>40.3%</td></tr></tbody></table></div></div><div class="bar-row tt"><span class="gkey">艾尔登法环</span><div class="bar-track"><div class="bar-fill" style="width:50.7%;background:linear-gradient(90deg,#6DC8EC,#269A99)"></div></div><span class="val">730</span><div class="tip"><div class="t-title">艾尔登法环 · 情绪分布</div><table><thead><tr><th>情绪</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td><span class="sdot" style="background:#22c55e"></span>😄 正面</td><td>654 条</td><td>89.6%</td></tr><tr><td><span class="sdot" style="background:#94a3b8"></span>😐 中性</td><td>0 条</td><td>0.0%</td></tr><tr><td><span class="sdot" style="background:#ef4444"></span>😠 负面</td><td>76 条</td><td>10.4%</td></tr></tbody></table></div></div><div class="bar-row tt"><span class="gkey">幻兽帕鲁</span><div class="bar-track"><div class="bar-fill" style="width:48.0%;background:linear-gradient(90deg,#269A99,#FF99C3)"></div></div><span class="val">691</span><div class="tip"><div class="t-title">幻兽帕鲁 · 情绪分布</div><table><thead><tr><th>情绪</th><th>条数</th><th>占比</th></tr></thead><tbody><tr><td><span class="sdot" style="background:#22c55e"></span>😄 正面</td><td>612 条</td><td>88.6%</td></tr><tr><td><span class="sdot" style="background:#94a3b8"></span>😐 中性</td><td>3 条</td><td>0.4%</td></tr><tr><td><span class="sdot" style="background:#ef4444"></span>😠 负面</td><td>76 条</td><td>11.0%</td></tr></tbody></table></div></div></div>
+    </div>
+  </div>
+
+  <div class="note">💡 悬停数字或条形图可查看按游戏拆分的明细占比
+    <span class="dot-s">·</span> 生成时间：2026-08-12T14:11:10
+    <span class="dot-s">·</span> 数据流水线自动产出 · 点击浏览器刷新按钮查看最新</div>
+</div>
+</body>
+</html>
